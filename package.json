@@ -1,0 +1,28 @@
+{
+  "name": "workflow-ceo-panel",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev:frontend": "next dev frontend -p 3000",
+    "build:frontend": "next build frontend",
+    "dev:backend": "ts-node-dev --respawn --transpile-only backend/src/server.ts",
+    "build:backend": "tsc -p backend",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "lint": "eslint ."
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0",
+    "typescript": "^5.6.3",
+    "eslint": "^9.0.0",
+    "ts-node-dev": "^2.0.0"
+  }
+}
