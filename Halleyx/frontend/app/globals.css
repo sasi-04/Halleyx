@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Palette (RGB triplets for Tailwind alpha support) */
+  --hx-primary: 77 109 154;     /* #4D6D9A */
+  --hx-dark-gray: 95 99 102;    /* #5F6366 */
+  --hx-soft-blue: 134 179 209;  /* #86B3D1 */
+  --hx-accent: 153 206 211;     /* #99CED3 */
+  --hx-soft-pink: 237 181 191;  /* #EDB5BF */
+
+  /* Single, global dark mode surfaces (default for entire app) */
+  --hx-app: 31 41 51;            /* #1F2933 */
+  --hx-sidebar: 95 99 102;       /* #5F6366 */
+  --hx-surface: 36 52 71;        /* ~#243447 */
+  --hx-panel: 50 70 92;          /* ~#32465C */
+  --hx-border: 148 163 184;      /* slate-400-ish */
+
+  /* Text */
+  --hx-text: 249 250 251;        /* #F9FAFB */
+  --hx-text-secondary: 209 213 219; /* #D1D5DB */
+  --hx-text-muted: 156 163 175;  /* #9CA3AF */
+  --hx-text-on-sidebar: 249 250 251;
+
+  /* Semantic */
+  --hx-info: 134 179 209;       /* soft blue */
+  --hx-success: 153 206 211;    /* accent teal */
+  --hx-error: 237 181 191;      /* soft pink */
+
+  /* Workflow */
+  --hx-step-completed: 77 109 154; /* primary */
+  --hx-step-current: 153 206 211;  /* accent */
+  --hx-step-pending: 107 114 128;  /* muted gray */
+}
+
+body {
+  @apply bg-app text-text antialiased;
+}
+
+/* A couple of reusable “SaaS” primitives (no component structure changes) */
+.hx-glass {
+  @apply backdrop-blur-glass bg-surface/80 border border-border;
+}
+
+.hx-card {
+  @apply rounded-card border border-border bg-panel shadow-card;
+}
+
+.hx-card:hover {
+  @apply shadow-cardHover -translate-y-0.5;
+}
+

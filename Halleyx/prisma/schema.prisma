@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(EMPLOYEE)
+  password  String
+  avatarUrl String? 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  decisions ExecutiveDecision[]
+}
+
+enum UserRole {
+  EMPLOYEE
+  MANAGER
+  FINANCE
+  CEO
+}
+
+model WorkflowRequest {
+  id               String              @id @default(cuid())
+  requestType      RequestType
+  employeeName     String
+  employeeId       String
+  department       String
+  amount           Float?
+  priority         PriorityLevel       @default(MEDIUM)
+  status           WorkflowStatus      @default(PENDING)
+  submittedAt      DateTime            @default(now())
+  currentStep      String
+  steps            WorkflowStep[]
+  escalationReason String?
+  isEscalatedToCeo Boolean             @default(false)
+  decisions        ExecutiveDecision[]
+}
+
+enum RequestType {
+  EXPENSE
+  ONBOARDING
+}
+
+enum PriorityLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum WorkflowStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+model WorkflowStep {
+  id              String   @id @default(cuid())
+  workflowId      String
+  workflow        WorkflowRequest @relation(fields: [workflowId], references: [id])
+  name            String
+  order           Int
+  completed       Boolean  @default(false)
+  completedAt     DateTime?
+}
+
+model ExecutiveDecision {
+  id            String   @id @default(cuid())
+  workflowId    String
+  workflow      WorkflowRequest @relation(fields: [workflowId], references: [id])
+  ceoId         String
+  ceo           User     @relation(fields: [ceoId], references: [id])
+  decision      DecisionType
+  comment       String?
+  createdAt     DateTime @default(now())
+}
+
+enum DecisionType {
+  APPROVED
+  REJECTED
+}
+

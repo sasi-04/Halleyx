@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    String @id @default(uuid())
+  employee_id String? @unique
+  name  String
+  email String @unique
+  password String
+  role UserRole
+  department String?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  executionsTriggered Execution[] @relation("TriggeredExecutions")
+  approvals           ExecutionLog[] @relation("ExecutionApprovals")
+  requests            Request[]     @relation("UserRequests")
+  auditLogs           AuditLog[]     @relation("AuditLogs")
+
+  createdRequests      Request[]    @relation("CreatedRequests")
+}
+
+model Request {
+  id              String        @id @default(uuid())
+  request_type    RequestType
+  workflow_id     String
+  execution_id    String?       @unique
+  requested_by    String
+  status          RequestStatus
+  current_step_id String?
+  request_data    Json
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  // ------------------------------
+  // Stable/simple request fields
+  // ------------------------------
+  title           String?
+  type            SimpleRequestType?
+  amount          Float?
+  description     String?
+  simple_status   SimpleRequestStatus?
+  currentLevel    ApprovalLevel?
+  createdById     String?
+
+  requester User @relation("UserRequests", fields: [requested_by], references: [id], onDelete: Cascade)
+  auditLogs AuditLog[]
+  workflowSteps WorkflowStep[]
+
+  createdBy User? @relation("CreatedRequests", fields: [createdById], references: [id], onDelete: SetNull)
+}
+
+enum RequestType {
+  expense
+  onboarding
+}
+
+enum RequestStatus {
+  pending
+  in_progress
+  approved
+  rejected
+  completed
+}
+
+// Stable/simple enums (forced flow)
+enum SimpleRequestType {
+  EXPENSE
+  ONBOARDING
+}
+
+enum SimpleRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalLevel {
+  MANAGER
+  HR
+  CEO
+}
+
+model Workflow {
+  id           String   @id @default(uuid())
+  name         String
+  version      Int
+  is_active    Boolean  @default(false)
+  input_schema Json
+  start_step_id String? @db.Uuid
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  steps      Step[]
+  executions Execution[]
+}
+
+model Step {
+  id          String   @id @default(uuid())
+  workflow_id String
+  name        String
+  step_type   StepType
+  order       Int
+  metadata    Json
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  workflow Workflow @relation(fields: [workflow_id], references: [id])
+  rules    Rule[]
+}
+
+model Rule {
+  id           String   @id @default(uuid())
+  step_id      String
+  condition    String
+  next_step_id String?
+  priority     Int
+  is_default   Boolean  @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  step Step @relation(fields: [step_id], references: [id])
+}
+
+model Execution {
+  id               String   @id @default(uuid())
+  workflow_id      String
+  workflow_version Int
+  status           ExecutionStatus
+  data             Json
+  logs             Json
+  current_step_id  String?
+  retries          Int      @default(0)
+  triggered_by     String?
+  started_at       DateTime @default(now())
+  ended_at         DateTime?
+
+  workflow Workflow @relation(fields: [workflow_id], references: [id])
+  triggeredByUser User? @relation("TriggeredExecutions", fields: [triggered_by], references: [id])
+  executionLogs  ExecutionLog[]
+}
+
+model ExecutionLog {
+  id                String   @id @default(uuid())
+  execution_id      String
+  request_id        String?
+  step_name         String
+  step_type         StepType
+  evaluated_rules   Json     @default("{}")
+  selected_next_step String?
+  status            ExecutionLogStatus
+  approver_id       String?
+  error_message     String?
+  started_at        DateTime @default(now())
+  ended_at          DateTime?
+
+  execution Execution @relation(fields: [execution_id], references: [id])
+  approver  User?     @relation("ExecutionApprovals", fields: [approver_id], references: [id])
+
+  @@index([request_id])
+  @@index([execution_id])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  request_id  String
+  action      String
+  user_id     String
+  comments    String?
+  timestamp   DateTime @default(now())
+  
+  request     Request @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  user        User    @relation("AuditLogs", fields: [user_id], references: [id])
+  
+  @@index([request_id])
+  @@index([user_id])
+  @@index([action])
+}
+
+model WorkflowStep {
+  id          String        @id @default(uuid())
+  request_id  String
+  level       Int
+  role        UserRole
+  approver_id String?
+  status      RequestStatus
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  request     Request       @relation(fields: [request_id], references: [id], onDelete: Cascade)
+
+  @@index([request_id])
+  @@index([role])
+}
+
+enum StepType {
+  task
+  approval
+  notification
+  completion
+}
+
+enum ExecutionStatus {
+  pending
+  in_progress
+  completed
+  failed
+  canceled
+}
+
+enum ExecutionLogStatus {
+  pending
+  in_progress
+  completed
+  failed
+  paused
+}
+
+enum UserRole {
+  EMPLOYEE
+  MANAGER
+  FINANCE
+  HR
+  IT
+  CEO
+  ADMIN
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  user_id    String
+  type       String
+  title      String
+  message    String
+  request_id String?
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@index([is_read])
+}
+
+model AutomationRule {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  request_type RequestType?
+  condition    String
+  action       String
+  priority     Int      @default(1)
+  is_enabled   Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@index([request_type])
+  @@index([is_enabled])
+}
